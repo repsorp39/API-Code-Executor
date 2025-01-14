@@ -1,0 +1,22 @@
+{
+  "name": "online-editor",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "dev": "node --watch ./server",
+    "start": "node ./server"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^4.21.2",
+    "require-shield": "^1.0.3",
+    "vm2": "^3.9.19"
+  },
+  "devDependencies": {
+    "morgan": "^1.10.0"
+  }
+}
