@@ -2,6 +2,7 @@ const fs = require("fs");
 const { exec } = require("child_process");
 const path = require("path");
 const  { v4:uuid } = require("uuid");
+const { fetchError } = require("./utils");
 
 function CompilerManagement(req, res, next){
 
@@ -23,26 +24,27 @@ function CompilerManagement(req, res, next){
 
     fs.writeFile(filePath, input, (err)=>{
             if(err) {
-                res.end();
+                res.sendStatus(500);
                 console.log(err)
             };
             
-            const cmd = `timeout 6s docker run  --rm  -v ./src/public:/codesource -e filename=${filename} -e compiler=${compiler}  c_area`;
-
-            exec(cmd, (error, stdout, stderr)=>{
-
+            const cmd = `timeout 1s docker run  --rm  -v ./src/public:/codesource -e filename=${filename} -e compiler=${compiler}  c_area`;
+            exec(cmd,(error, stdout, stderr)=>{                
                 if(error){
-
                     
-                    res.sendStatus(500)
-                }
-
-                if(stdout){
-                    res.status(200).json({output:stdout});
+                    if(error.code === 124){
+                        res.status(400).json({message:"Timeout Error"})
+                    }else{
+                        const e = fetchError(error.message, lang);
+                        res.status(400).json({output:e});
+                    }
+                    
+                }else{
+                    res.status(200).json({output:stdout??""});
                 }
 
                 if(filename.includes("-tmp")){
-                    fs.unlink(filePath,(err)=>{});
+                    fs.unlink(filePath,(err)=>{ if(err) return; });
                 }
             })
     });
