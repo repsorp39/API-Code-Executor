@@ -13,7 +13,12 @@ app.use("/api/code/" ,require("./routes/code-router"));
 
 
 app.use((err,req,res,next)=>{
+
+    if(err.name ==="SyntaxError"){
+       return res.status(400).json({message:"invalide json received!"})
+    }
     res.sendStatus(500);
+
     console.error(err); 
 });
 

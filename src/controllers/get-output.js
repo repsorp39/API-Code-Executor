@@ -31,7 +31,6 @@ function CompilerManagement(req, res, next){
             const cmd = `timeout 1s docker run  --rm  -v ./src/public:/codesource -e filename=${filename} -e compiler=${compiler}  c_area`;
             exec(cmd,(error, stdout, stderr)=>{                
                 if(error){
-                    
                     if(error.code === 124){
                         res.status(400).json({message:"Timeout Error"})
                     }else{
