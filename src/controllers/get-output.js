@@ -1,139 +1,52 @@
-const { VM } = require("vm2");
 const fs = require("fs");
 const { exec } = require("child_process");
-const { fetchError, pythonLimiter } = require("./utils");
+const path = require("path");
+const  { v4:uuid } = require("uuid");
 
+function CompilerManagement(req, res, next){
 
-function JavaScriptManager(req, res, next){
+    const { lang, input } = req.body;
+    const availableLanguages = ["py","js","c","cpp"];
 
-    let  { input } = req.body;
-    try {
-        let output = [];
-        const vm = new VM({
-            console:'inherit',
-            timeout:3000,
-            allowAsync:true,
-            wasm:false,
-            allowAsync:false,
-            sandbox:{
-                console:{
-                    log:(msg) => output.push(msg)
-                }
-            },
-            require:{
-                external:true,
-                root:"./exec/"
-            }
-        })
-        vm.run(input);
-        res.json({output:output.join('\n')})
-    }catch (e) {
-        res.status(400).json({error:`${e.name}: ${e.message}`})
-    }
-}
-
- function PythonManager(req, res, next) {
-    let  { input } = req.body;
-
-    try {
-        if(input.includes("subprocess")) throw "Attempted to access unallowed ressource:subprocess";
-        
-        fs.writeFile("./exec/main.py",pythonLimiter.limiter +"\n" + input ,(err)=>{
-            if(!err){
-                let output = [];
-        
-                const vm = new VM({
-                    console:'inherit',
-                    timeout:3000,
-                    allowAsync:true,
-                    wasm:false,
-                    allowAsync:false,
-                    sandbox:{ 
-                        exec,getOutput:(msg)=>{output.push(msg)}
-                     },
-                    require:{
-                        external:true,
-                        root:"./exec/",
-                        builtin:["child_process"]
-                    }
-                })
-                
-                try {
-                    vm.run(`
-                        getOutput(exec("python3 ./exec/main.py " ,{ encoding:"utf-8"}))    `
-                     );
-                     res.json({output});
-                } catch (error) {
-                    if(error.stderr){
-                        res.status(400).json({ error: fetchError(error.stderr)});
-                    }else{
-                        res.status(400).json({ error: (error.message)});
-                        
-                    }
-                }
-            }
-        });
-        
-    } catch (err) {
-            res.status(400).json({ error:err });
+    if(!availableLanguages.includes(lang?.toLowerCase())){
+        return res.status(400).json({message:`${lang} is not supported`});
     }
 
-}
+    if(!input){
+        return res.status(400).json({message:`Input is required!`});
+      }
 
+   const userId = req.userId;
+   const filename = !userId ? `${uuid()}-tmp.${lang}`: `${userId}.${lang}`;
+   const filePath = path.join(__dirname, "..", "public", filename);
+   const compiler = lang === "py" ? "python" : lang === "js" ? "node" : lang;
 
-function CppManager (req, res, next){
+    fs.writeFile(filePath, input, (err)=>{
+            if(err) {
+                res.end();
+                console.log(err)
+            };
+            
+            const cmd = `timeout 6s docker run  --rm  -v ./src/public:/codesource -e filename=${filename} -e compiler=${compiler}  c_area`;
 
-    let  { input,option = "c"} = req.body;
-    
-    fs.writeFile("./exec/main.c", input ,(err)=>{
-        if(!err){
-            let output = [];
-    
-            const vm = new VM({
-                console:'inherit',
-                timeout:3000,
-                allowAsync:true,
-                wasm:false,
-                allowAsync:false,
-                sandbox:{ 
-                    execSync,getOutput:(msg)=>{output.push(msg)}
-                 },
-                require:{
-                    external:true,
-                    root:"./exec/",
-                    builtin:["child_process"]
+            exec(cmd, (error, stdout, stderr)=>{
+
+                if(error){
+
+                    
+                    res.sendStatus(500)
+                }
+
+                if(stdout){
+                    res.status(200).json({output:stdout});
+                }
+
+                if(filename.includes("-tmp")){
+                    fs.unlink(filePath,(err)=>{});
                 }
             })
-            
-            try {
-                let compiler = option === "c" ? "gcc":"g++" ;
-                
-
-                vm.run(`
-                    getOutput(execSync("${compiler} ./exec/main.c -o ./exec/main && ./exec/main" ,{ encoding:"utf-8"}))    `
-                 );
-                 res.json({output});
-            } catch (error) {
-                if(error.stderr){
-                    res.status(400).json({ error: fetchError(error.stderr)});
-                }else{
-                    res.status(400).json({ error: (error.message)});
-                    
-                }
-            }
-        }
-    }
-
-    )
+    });
 }
 
-
-/*
-
--- security 
--- c/cpp timeout
--- performance with async programm and threads workers
- */
-
-module.exports = { JavaScriptManager ,PythonManager, CppManager}
+module.exports = { CompilerManagement }
 

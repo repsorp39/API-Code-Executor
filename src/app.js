@@ -13,9 +13,7 @@ app.use("/api/code/" ,require("./routes/code-router"));
 
 
 app.use((err,req,res,next)=>{
-    if(err.name === "SyntaxError"){
-        res.status(400).json({error:"Bad escaped character"})
-    }
+    res.sendStatus(500);
     console.error(err); 
 });
 
