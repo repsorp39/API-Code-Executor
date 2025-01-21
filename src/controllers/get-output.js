@@ -28,11 +28,11 @@ function CompilerManagement(req, res, next){
                 console.log(err)
             };
             
-            const cmd = `timeout 1s docker run  --rm  -v ./src/public:/codesource -e filename=${filename} -e compiler=${compiler}  c_area`;
+            const cmd = `timeout 3s docker run  --rm  -v ./src/public:/codesource -e filename=${filename} -e compiler=${compiler}  c_area`;
             exec(cmd,(error, stdout, stderr)=>{                
                 if(error){
                     if(error.code === 124){
-                        res.status(400).json({message:"Timeout Error"})
+                        res.status(403).json({message:"Timeout Error: It's seems like your programm is taking too much time to execute"})
                     }else{
                         const e = fetchError(error.message, lang);
                         res.status(400).json({output:e});
