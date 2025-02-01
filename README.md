@@ -32,4 +32,9 @@ Le corps de la requête doit être un objet JSON contenant les champs suivants :
 
 ### Output
 
-`{ output: errorMessage | codeResult }`
+
+```
+{
+ output: errorMessage | codeResult
+} 
+```
