@@ -10,7 +10,7 @@ const  fetchError = (err, lang) => {
    else if(lang === "js"){
       const regex = /\^\n\n(.+?)\n/;
       const match = err.match(regex);
-      return (!match || !match[0]) ? "": match[0];
+      return (!match || !match[0]) ? "": match[0].substr(3,Infinity);
    }
 
    else {

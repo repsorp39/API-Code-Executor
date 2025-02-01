@@ -22,7 +22,8 @@ function CompilerManagement(req, res, next){
    const filePath = path.join(__dirname, "..", "public", filename);
    const compiler = lang === "py" ? "python" : lang === "js" ? "node" : lang;
 
-    fs.writeFile(filePath, input, (err)=>{
+    //using replace because some errors occurs with insecable caracters
+    fs.writeFile(filePath, input.replace(/#######/g," "), "utf-8" ,(err)=>{
             if(err) {
                 res.sendStatus(500);
                 console.log(err)
